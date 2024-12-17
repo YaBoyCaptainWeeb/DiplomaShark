@@ -1,0 +1,59 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Design.PreviewWith>
+        <Border Padding="20">
+            <!--  Add Controls for Previewer Here  -->
+        </Border>
+    </Design.PreviewWith>
+
+    <!--  Add Styles Here  -->
+    <Style>
+        <Style.Resources>
+            <StreamGeometry x:Key="shield_keyhole_regular">M13.9951 11C13.9951 11.8374 13.4804 12.5545 12.75 12.8523L12.75 15.25C12.75 15.6642 12.4142 16 12 16C11.5858 16 11.25 15.6642 11.25 15.25L11.25 12.8559C10.515 12.5603 9.99603 11.8408 9.99603 11C9.99603 9.89568 10.8913 9.00046 11.9956 9.00046C13.0999 9.00046 13.9951 9.89568 13.9951 11Z M3.75 5C3.33579 5 3 5.33579 3 5.75V11C3 16.0012 5.95756 19.6757 11.7251 21.9478C11.9018 22.0174 12.0982 22.0174 12.2749 21.9478C18.0424 19.6757 21 16.0012 21 11V5.75C21 5.33579 20.6642 5 20.25 5C17.5866 5 14.992 4.05652 12.45 2.15C12.1833 1.95 11.8167 1.95 11.55 2.15C9.00797 4.05652 6.41341 5 3.75 5ZM4.5 11V6.47793C7.07735 6.32585 9.58084 5.38829 12 3.67782C14.4192 5.38829 16.9227 6.32585 19.5 6.47793V11C19.5 15.2556 17.0466 18.3789 12 20.4419C6.95337 18.3789 4.5 15.2556 4.5 11Z</StreamGeometry>
+        </Style.Resources>
+    </Style>
+
+
+
+    <Style Selector="StackPanel.Board">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Spacing" Value="10" />
+    </Style>
+
+    <Style Selector="Border.Board1">
+        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="BackgroundSizing" Value="CenterBorder" />
+        <Setter Property="BorderThickness" Value="5" />
+        <Setter Property="BorderBrush" Value="#717375" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Opacity" Value="0.65" />
+        <Setter Property="Padding" Value="15" />
+    </Style>
+
+    <Style Selector="Border.ItemsBorder">
+        <Setter Property="CornerRadius" Value="5" />
+        <Setter Property="BackgroundSizing" Value="InnerBorderEdge" />
+        <Setter Property="BorderThickness" Value="2" />
+        <Setter Property="BorderBrush" Value="DarkSlateGray" />
+        <Setter Property="Background" Value="Black" />
+        <Setter Property="Opacity" Value="0.65" />
+        <Setter Property="Padding" Value="3" />
+    </Style>
+
+    <Style Selector="TextBlock.BoardDescription">
+        <Setter Property="Margin" Value="10" />
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="FontStyle" Value="Oblique" />
+        <Setter Property="TextAlignment" Value="Center" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Foreground" Value="White" />
+    </Style>
+
+    <Style Selector="TextBlock.InterfaceDescription">
+        <Setter Property="Margin" Value="3" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontStyle" Value="Normal" />
+        <Setter Property="TextAlignment" Value="Start" />
+        <Setter Property="TextWrapping" Value="WrapWithOverflow" />
+        <Setter Property="Foreground" Value="#F8F8F8" />
+    </Style>
+</Styles>
