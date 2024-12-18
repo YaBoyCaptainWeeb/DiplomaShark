@@ -1,21 +1,19 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using DiplomaShark.ViewModels;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Reflection.Metadata.Ecma335;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System;
 
 namespace DiplomaShark.Models
 {
     internal class Interfaces
     {
+        private string? _name;
+        public string Name
+        {
+            get => $"Имя устройства: \n{(_name != string.Empty ? _name : "\nНе определено")}";
+            set => _name = value;
+        }
         private string? _interfaceDescription;
         public string InterfaceDescription
         {
-            get => $"Название интерфейса: \n{(_interfaceDescription != string.Empty ? _interfaceDescription : "\nНе определено")}";
+            get => $"Описание интерфейса: \n{(_interfaceDescription != string.Empty ? _interfaceDescription : "\nНе определено")}";
             set
             {
                 _interfaceDescription = value;

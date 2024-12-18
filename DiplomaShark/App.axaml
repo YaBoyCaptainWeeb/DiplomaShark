@@ -12,7 +12,7 @@
 
     <Application.Styles>
         <FluentTheme DensityStyle="Compact" />
-        <StyleInclude Source="Styles1.axaml" />
+        <StyleInclude Source="StylesDicrionary.axaml" />
 
 
     </Application.Styles>

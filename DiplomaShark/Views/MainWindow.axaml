@@ -3,6 +3,8 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:i="clr-namespace:Avalonia.Xaml.Interactivity;assembly=Avalonia.Xaml.Interactivity"
+    xmlns:ia="clr-namespace:Avalonia.Xaml.Interactions.Core;assembly=Avalonia.Xaml.Interactions"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="using:DiplomaShark.ViewModels"
     Title="DiplomaShark"
@@ -14,17 +16,11 @@
     Background="Transparent"
     ExtendClientAreaToDecorationsHint="True"
     Icon="/Assets/avalonia-logo.ico"
-    IsHitTestVisible="True"
-    SystemDecorations="Full"
     TransparencyLevelHint="AcrylicBlur"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
 
     <Design.DataContext>
-        <!--
-            This only sets the DataContext for the previewer in an IDE,
-            to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs)
-        -->
         <vm:InterfacesViewModel />
     </Design.DataContext>
 
@@ -39,10 +35,10 @@
             </ExperimentalAcrylicBorder.Material>
         </ExperimentalAcrylicBorder>
 
-        <DockPanel VerticalAlignment="Top">
+        <DockPanel Margin="0,25,0,0" VerticalAlignment="Top">
             <Menu Background="Transparent" DockPanel.Dock="Top">
                 <MenuItem
-                    Command="{Binding StartProfiling}"
+                    Command="{Binding StartProfilingCommand}"
                     Foreground="White"
                     Header="Начать профилирование" />
                 <Separator Width="1" Height="20" />
@@ -54,7 +50,7 @@
             </Menu>
         </DockPanel>
         <Grid
-            Margin="0,30,0,0"
+            Margin="0,60,0,0"
             ColumnDefinitions="30*,70*"
             RowDefinitions="70*,30*">
             <Border
@@ -87,16 +83,27 @@
 
                         <StackPanel ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                             <ListBox
-                                x:Name="inter"
                                 HorizontalAlignment="Stretch"
                                 VerticalAlignment="Stretch"
+                                AutoScrollToSelectedItem="True"
                                 Background="Transparent"
                                 ItemsSource="{Binding InterfacesList}"
-                                SelectionMode="Toggle">
+                                SelectionMode="Multiple">
+                                <Interaction.Behaviors>
+                                    <EventTriggerBehavior EventName="SelectionChanged">
+                                        <InvokeCommandAction Command="{Binding GetInterfaceStatisticsInfoCommand}" PassEventArgsToCommand="True" />
+                                    </EventTriggerBehavior>
+                                    <EventTriggerBehavior EventName="Loaded">
+                                        <InvokeCommandAction Command="{Binding GetListBoxPointerCommand}" PassEventArgsToCommand="True" />
+                                    </EventTriggerBehavior>
+                                </Interaction.Behaviors>
+
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <Border Classes="ItemsBorder">
                                             <StackPanel Background="Black">
+                                                <TextBlock Classes="InterfaceDescription" Text="{Binding Name}" />
+                                                <Separator />
                                                 <TextBlock Classes="InterfaceDescription" Text="{Binding InterfaceDescription}" />
                                                 <Separator />
                                                 <TextBlock Classes="InterfaceDescription" Text="{Binding InterfaceType}" />
@@ -123,7 +130,7 @@
                         Margin="0,-5,0,0"
                         Classes="BoardDescription"
                         DockPanel.Dock="Top"
-                        Text="Список пакетов в прослушиваемом траффике выбранных интерфейсов" />
+                        Text="Статистика в прослушиваемом траффике выбранных интерфейсов" />
                     <Border
                         Margin="0,5,0,0"
                         Classes="ItemsBorder"
