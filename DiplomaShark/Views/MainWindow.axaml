@@ -52,9 +52,10 @@
         <Grid
             Margin="0,60,0,0"
             ColumnDefinitions="30*,70*"
-            RowDefinitions="70*,30*">
+            RowDefinitions="*,*">
             <Border
                 Grid.Row="0"
+                Grid.RowSpan="2"
                 Grid.Column="0"
                 Classes="Board1">
                 <DockPanel>
@@ -68,9 +69,10 @@
                         Margin="0,5,0,0"
                         HorizontalAlignment="Center"
                         HorizontalContentAlignment="Center"
+                        Command="{Binding LoadAllItemsCommand}"
                         Content="Отобразить информацию обо всех интерфейсах сразу"
                         DockPanel.Dock="Top"
-                        IsChecked="{Binding AllChecked}" />
+                        IsChecked="{Binding AllChecked, Mode=TwoWay}" />
                     <ScrollViewer
                         Margin="0,5,0,0"
                         HorizontalAlignment="Stretch"
@@ -102,14 +104,28 @@
                                     <DataTemplate>
                                         <Border Classes="ItemsBorder">
                                             <StackPanel Background="Black">
+                                                <TextBlock Classes="InterfaceDescription" Text="Имя устройства: " />
                                                 <TextBlock Classes="InterfaceDescription" Text="{Binding Name}" />
                                                 <Separator />
+                                                <TextBlock Classes="InterfaceDescription" Text="Описание устройства: " />
                                                 <TextBlock Classes="InterfaceDescription" Text="{Binding InterfaceDescription}" />
                                                 <Separator />
+                                                <TextBlock Classes="InterfaceDescription" Text="Тип интерфейса: " />
                                                 <TextBlock Classes="InterfaceDescription" Text="{Binding InterfaceType}" />
                                                 <Separator />
+                                                <TextBlock Classes="InterfaceDescription" Text="IPv4 адрес: " />
+                                                <TextBlock Classes="InterfaceDescription" Text="{Binding IpAddress}" />
+                                                <Separator />
+                                                <TextBlock Classes="InterfaceDescription" Text="IPv4 маска подсети: " />
+                                                <TextBlock Classes="InterfaceDescription" Text="{Binding IPv4Mask}" />
+                                                <Separator />
+                                                <TextBlock Classes="InterfaceDescription" Text="Шлюз по умолчанию: " />
+                                                <TextBlock Classes="InterfaceDescription" Text="{Binding GateWay}" />
+                                                <Separator />
+                                                <TextBlock Classes="InterfaceDescription" Text="MAC адрес: " />
                                                 <TextBlock Classes="InterfaceDescription" Text="{Binding InterfaceMAC}" />
                                                 <Separator />
+                                                <TextBlock Classes="InterfaceDescription" Text="Пропускная способность: " />
                                                 <TextBlock Classes="InterfaceDescription" Text="{Binding InterfaceSpeed}" />
                                             </StackPanel>
                                         </Border>
@@ -123,6 +139,7 @@
 
             <Border
                 Grid.Row="0"
+                Grid.RowSpan="2"
                 Grid.Column="1"
                 Classes="Board1">
                 <DockPanel Classes="Board">
@@ -131,6 +148,47 @@
                         Classes="BoardDescription"
                         DockPanel.Dock="Top"
                         Text="Статистика в прослушиваемом траффике выбранных интерфейсов" />
+                    <DockPanel
+                        Margin="0,5,0,0"
+                        HorizontalAlignment="Center"
+                        DockPanel.Dock="Top">
+                        <Border Classes="ItemsBorder">
+                            <StackPanel Orientation="Vertical">
+                                <TextBlock
+                                    Classes="BoardDescription"
+                                    FontSize="14"
+                                    Text="Глобальная статистика"
+                                    TextAlignment="Center" />
+                                <DataGrid
+                                    MinHeight="100"
+                                    MaxHeight="300"
+                                    AutoGenerateColumns="False"
+                                    Background="Transparent"
+                                    CanUserReorderColumns="False"
+                                    CanUserResizeColumns="False"
+                                    CanUserSortColumns="True"
+                                    IsReadOnly="True"
+                                    ItemsSource="{Binding InterfacesList}">
+                                    <Interaction.Behaviors>
+                                        <EventTriggerBehavior EventName="Loaded">
+                                            <InvokeCommandAction Command="{Binding GetDatagridPointerCommand}" PassEventArgsToCommand="True" />
+                                        </EventTriggerBehavior>
+                                    </Interaction.Behaviors>
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Binding="{Binding InterfaceDescription}" Header="Интерфейс" />
+                                        <DataGridTextColumn Binding="{Binding Statistics.BytesReceived}" Header="Получено байт" />
+                                        <DataGridTextColumn Binding="{Binding Statistics.BytesSent}" Header="Отправлено байт" />
+                                        <DataGridTextColumn Binding="{Binding Statistics.IncomingUnknownProtocolPackets}" Header="Пакетов с неизвестным протоколом" />
+                                        <DataGridTextColumn Binding="{Binding Statistics.UnicastPacketsReceived}" Header="Unicast пакетов получено" />
+                                        <DataGridTextColumn Binding="{Binding Statistics.UnicastPacketsSent}" Header="Unicast пакетов отправлено" />
+                                        <DataGridTextColumn Binding="{Binding Statistics.IncomingPacketsDiscarded}" Header="Удаленные входящие пакеты" />
+                                        <DataGridTextColumn Binding="{Binding Statistics.IncomingPacketsWithErrors}" Header="Входящие пакеты с ошибками" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </StackPanel>
+                        </Border>
+
+                    </DockPanel>
                     <Border
                         Margin="0,5,0,0"
                         Classes="ItemsBorder"
@@ -139,26 +197,6 @@
                             AutoGenerateColumns="False"
                             DockPanel.Dock="Top"
                             ItemsSource="" />
-                    </Border>
-                </DockPanel>
-            </Border>
-
-            <Border
-                Grid.Row="1"
-                Grid.Column="0"
-                Grid.ColumnSpan="2"
-                Classes="Board1">
-                <DockPanel Classes="Board">
-                    <TextBlock
-                        Margin="0,-5,0,0"
-                        Classes="BoardDescription"
-                        DockPanel.Dock="Top"
-                        Text="Содержимое выбранного пакета" />
-                    <Border
-                        Margin="0,5,0,0"
-                        Classes="ItemsBorder"
-                        DockPanel.Dock="Top">
-                        <DataGrid />
                     </Border>
                 </DockPanel>
             </Border>

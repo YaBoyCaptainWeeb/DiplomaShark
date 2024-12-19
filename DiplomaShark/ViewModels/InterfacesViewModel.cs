@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using System.Reactive.Linq;
 
 namespace DiplomaShark.ViewModels
 {
@@ -26,57 +27,56 @@ namespace DiplomaShark.ViewModels
         #endregion
 
         #region  Внутренние переменные
-        public ObservableCollection<Interfaces>? ChoosenItems = [];
-
-        #endregion
-
-        #region Relay комманды // Получается, с атрибутами они не нужны?
-        //private RelayCommand? getInterfaceStatisticsInfoCommand;
-        //public RelayCommand GetInterfaceStatisticsInfoCommand => getInterfaceStatisticsInfoCommand ??= new RelayCommand<SelectionChangedEventArgs>(GetInterfaceStatisticsInfo);
-        //public IRelayCommand? GetListBoxPointerCommand
+        public List<Interfaces> ListBoxChoosenItems = [];
+        //public ObservableCollection<IPInterfaceStatistics> ChoosenInterfaceStat { get; set; }
+        //public IPGlobalStatistics AllInterfacesStat { get; set; }
         #endregion
 
         #region Controls элементы, указатели
         ListBox? listBox;
+        DataGrid? StatisticsDataGrid;
         #endregion
 
         public InterfacesViewModel()
         {
-            //_getInterfaceStatisticsInfo = new RelayCommand<SelectionChangedEventArgs>(GetInterfaceStatisticsInfo);
-            //GetListBoxPointerCommand = new RelayCommand<RoutedEventArgs>(GetListBoxPointer);
             _canStartProfiling = NetworkInterface.GetAllNetworkInterfaces().ToArray().Length > 0;
         }
         [RelayCommand(CanExecute = nameof(CanStartProfiling))]
         private void StartProfiling()
         {
             CanStartProfiling = false;
-
             List<NetworkInterface> adapters = NetworkInterface.GetAllNetworkInterfaces()
-                .Where(x => x.OperationalStatus == OperationalStatus.Up && x.Speed > 0 && (x.NetworkInterfaceType == NetworkInterfaceType.Ethernet || x.NetworkInterfaceType == NetworkInterfaceType.Wireless80211 || x.NetworkInterfaceType == NetworkInterfaceType.FastEthernetT || x.NetworkInterfaceType == NetworkInterfaceType.GigabitEthernet))
+            .Where(x => x.OperationalStatus == OperationalStatus.Up && (x.NetworkInterfaceType == NetworkInterfaceType.Ethernet || x.NetworkInterfaceType == NetworkInterfaceType.Wireless80211))
                 .ToList();
-            
-
-            // Дорабатываем статистику интерфейсов
-            var x = adapters[0].GetIPv4Statistics();
-            var y = adapters[0].GetIPStatistics();
 
             if (adapters.Count() > 0)
             {
+                ObservableCollection<Interfaces>? networkInterfaces = [];
 
-                ObservableCollection<Interfaces>? networkInterfaces = new ObservableCollection<Interfaces>();
                 foreach (var adapter in adapters)
                 {
-                    Interfaces network = new Interfaces()
+                    IPInterfaceProperties props = adapter.GetIPProperties();
+                    UnicastIPAddressInformation? UnicastAddresses = props.UnicastAddresses
+                            .FirstOrDefault(x => x.Address.AddressFamily == AddressFamily.InterNetwork);
+
+                    if (UnicastAddresses != null)
                     {
-                        Name = adapter.Name,
-                        InterfaceDescription = adapter.Description,
-                        InterfaceType = adapter.NetworkInterfaceType.ToString(),
-                        InterfaceMAC = adapter.GetPhysicalAddress().ToString(),
-                        InterfaceSpeed = adapter.Speed.ToString(),
-                    };
+                        Interfaces network = new Interfaces()
+                        {
+                            Statistics = adapter.GetIPStatistics(),
 
-                    networkInterfaces.Add(network);
+                            Name = adapter.Name,
+                            InterfaceDescription = adapter.Description,
+                            InterfaceType = adapter.NetworkInterfaceType.ToString(),
+                            IpAddress = UnicastAddresses.Address.ToString(),
+                            IPv4Mask = UnicastAddresses.IPv4Mask.ToString(),
+                            GateWay = props.GatewayAddresses.FirstOrDefault()!.Address.ToString(),
+                            InterfaceMAC = adapter.GetPhysicalAddress().ToString(),
+                            InterfaceSpeed = adapter.Speed.ToString(),
+                        };
 
+                        networkInterfaces.Add(network);
+                    }
                 }
                 InterfacesList = networkInterfaces;
                 GetInterfaceStatisticsInfo(listBox!);
@@ -84,22 +84,26 @@ namespace DiplomaShark.ViewModels
         }
 
         [RelayCommand]
-        private void GetInterfaceStatisticsInfo(SelectionChangedEventArgs? e)
+        private void GetInterfaceStatisticsInfo(SelectionChangedEventArgs? e) // При выборе элемента из списка
         {
+            ListBox list = (e!.Source as ListBox)!;
+            IEnumerable<Interfaces> itemsList = list.SelectedItems!.Cast<Interfaces>();
+
             try
             {
-
-                switch (AllChecked)
+                if (AllChecked)
                 {
-                    case true:
-                        foreach (Interfaces item in (e.Source as ListBox).Items)
-                        {
-                            Debug.WriteLine(item.InterfaceDescription);
-                        }
-                        break;
-                    default:
-                        Debug.WriteLine("Пока что не реализовано");
-                        break;
+                    //AllChecked = false;
+                    ListBoxChoosenItems = itemsList.ToList();
+
+                    ListBoxChoosenItems.ForEach(x => Debug.WriteLine($"{x.Name}"));
+                }
+                else
+                {
+                    ListBoxChoosenItems = itemsList.ToList();
+
+                    ListBoxChoosenItems.ForEach(x => Debug.WriteLine($"{x.Name}"));
+
                 }
 
             }
@@ -108,6 +112,24 @@ namespace DiplomaShark.ViewModels
                 return;
             }
 
+        }
+        [RelayCommand(CanExecute = nameof(AllChecked))]
+        private void LoadAllItems()
+        {
+            try
+            {
+                ListBoxChoosenItems.Clear();
+
+                foreach (Interfaces item in listBox.Items)
+                {
+                    Debug.WriteLine(item.InterfaceDescription);
+                }
+
+            }
+            catch (NullReferenceException)
+            {
+                return;
+            }
         }
         [RelayCommand]
         private void GetListBoxPointer(RoutedEventArgs? e) // Так проще. Изначально хранить указатель на список, вместо того, чтобы пытаться через
@@ -116,24 +138,28 @@ namespace DiplomaShark.ViewModels
             listBox = (e!.Source as ListBox)!;
 
         }
-        private void GetInterfaceStatisticsInfo(ListBox list)
+        [RelayCommand]
+        private void GetDatagridPointer(RoutedEventArgs? e) 
         {
+            StatisticsDataGrid = (e!.Source as DataGrid)!;
+        }
+
+        private void GetInterfaceStatisticsInfo(ListBox list)
+        { // ДОДЕЛАТЬ
+            
             try
             {
-
-                switch (AllChecked)
+                if (AllChecked)
                 {
-                    case true:
-                        foreach (Interfaces item in list.Items)
-                        {
-                            Debug.WriteLine(item.InterfaceDescription);
-                        }
-                        break;
-                    default:
-                        Debug.WriteLine("Пока что не реализовано");
-                        break;
+                    foreach (Interfaces item in list.Items)
+                    {
+                        Debug.WriteLine(item.InterfaceDescription);
+                    }
+                } else
+                {
+                    return;
                 }
-
+                
             }
             catch (NullReferenceException)
             {
@@ -141,5 +167,6 @@ namespace DiplomaShark.ViewModels
             }
 
         }
+
     }
 }
