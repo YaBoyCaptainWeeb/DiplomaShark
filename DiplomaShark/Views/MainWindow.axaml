@@ -42,7 +42,10 @@
                     Foreground="White"
                     Header="Начать профилирование" />
                 <Separator Width="1" Height="20" />
-                <MenuItem Foreground="White" Header="В разработке" />
+                <MenuItem
+                    Command="{Binding RefreshGlobasIPStatsCancelCommand}"
+                    Foreground="White"
+                    Header="Закончить профилирование" />
                 <Separator Width="1" Height="20" />
                 <MenuItem Foreground="White" Header="В разработке" />
                 <Separator Width="1" Height="20" />
@@ -64,7 +67,7 @@
                         Classes="BoardDescription"
                         DockPanel.Dock="Top"
                         Text="Список сетевых интерфейсов" />
-                    <Separator Width="{Binding $parent.Width}" DockPanel.Dock="Top" />
+                    <Separator DockPanel.Dock="Top" />
                     <CheckBox
                         Margin="0,5,0,0"
                         HorizontalAlignment="Center"
@@ -89,7 +92,7 @@
                                 VerticalAlignment="Stretch"
                                 AutoScrollToSelectedItem="True"
                                 Background="Transparent"
-                                ItemsSource="{Binding InterfacesList}"
+                                ItemsSource="{Binding InterfacesList, Mode=OneWay}"
                                 SelectionMode="Multiple">
                                 <Interaction.Behaviors>
                                     <EventTriggerBehavior EventName="SelectionChanged">
@@ -168,11 +171,16 @@
                                     CanUserResizeColumns="False"
                                     CanUserSortColumns="True"
                                     IsReadOnly="True"
-                                    ItemsSource="{Binding InterfacesList}">
+                                    ItemsSource="{Binding InterfacesList, Mode=OneWay}">
                                     <Interaction.Behaviors>
                                         <EventTriggerBehavior EventName="Loaded">
                                             <InvokeCommandAction Command="{Binding GetDatagridPointerCommand}" PassEventArgsToCommand="True" />
                                         </EventTriggerBehavior>
+                                        <!--
+										<EventTriggerBehavior EventName="PropertyChanged">
+											<InvokeCommandAction Command="{Binding "
+										</EventTriggerBehavior>
+										-->
                                     </Interaction.Behaviors>
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Binding="{Binding InterfaceDescription}" Header="Интерфейс" />

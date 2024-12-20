@@ -3,6 +3,7 @@ using Avalonia.Interactivity;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DiplomaShark.Models;
+using MsBox.Avalonia;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -11,6 +12,9 @@ using System.Linq;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Reactive.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using SharpPcap;
 
 namespace DiplomaShark.ViewModels
 {
@@ -26,10 +30,13 @@ namespace DiplomaShark.ViewModels
         private bool _canStartProfiling;
         #endregion
 
+        #region Relay комманды
+
+        #endregion
+
         #region  Внутренние переменные
-        public List<Interfaces> ListBoxChoosenItems = [];
-        //public ObservableCollection<IPInterfaceStatistics> ChoosenInterfaceStat { get; set; }
-        //public IPGlobalStatistics AllInterfacesStat { get; set; }
+        private List<Interfaces> ListBoxChoosenItems = [];
+        private List<NetworkInterface> Adapters = [];
         #endregion
 
         #region Controls элементы, указатели
@@ -44,90 +51,134 @@ namespace DiplomaShark.ViewModels
         [RelayCommand(CanExecute = nameof(CanStartProfiling))]
         private void StartProfiling()
         {
-            CanStartProfiling = false;
-            List<NetworkInterface> adapters = NetworkInterface.GetAllNetworkInterfaces()
-            .Where(x => x.OperationalStatus == OperationalStatus.Up && (x.NetworkInterfaceType == NetworkInterfaceType.Ethernet || x.NetworkInterfaceType == NetworkInterfaceType.Wireless80211))
-                .ToList();
-
-            if (adapters.Count() > 0)
+            try
             {
-                ObservableCollection<Interfaces>? networkInterfaces = [];
+                CanStartProfiling = false;
+                Adapters = NetworkInterface.GetAllNetworkInterfaces()
+                .Where(x => x.OperationalStatus == OperationalStatus.Up && (x.NetworkInterfaceType == NetworkInterfaceType.Ethernet || x.NetworkInterfaceType == NetworkInterfaceType.Wireless80211))
+                    .ToList();
 
-                foreach (var adapter in adapters)
+                if (Adapters.Count() > 0)
                 {
-                    IPInterfaceProperties props = adapter.GetIPProperties();
-                    UnicastIPAddressInformation? UnicastAddresses = props.UnicastAddresses
-                            .FirstOrDefault(x => x.Address.AddressFamily == AddressFamily.InterNetwork);
+                    ObservableCollection<Interfaces>? networkInterfaces = [];
 
-                    if (UnicastAddresses != null)
+                    foreach (var adapter in Adapters)
                     {
-                        Interfaces network = new Interfaces()
+                        IPInterfaceProperties props = adapter.GetIPProperties();
+                        UnicastIPAddressInformation? UnicastAddresses = props.UnicastAddresses
+                                .FirstOrDefault(x => x.Address.AddressFamily == AddressFamily.InterNetwork);
+
+                        if (UnicastAddresses != null)
                         {
-                            Statistics = adapter.GetIPStatistics(),
+                            Interfaces network = new Interfaces()
+                            {
+                                Statistics = adapter.GetIPStatistics(),
 
-                            Name = adapter.Name,
-                            InterfaceDescription = adapter.Description,
-                            InterfaceType = adapter.NetworkInterfaceType.ToString(),
-                            IpAddress = UnicastAddresses.Address.ToString(),
-                            IPv4Mask = UnicastAddresses.IPv4Mask.ToString(),
-                            GateWay = props.GatewayAddresses.FirstOrDefault()!.Address.ToString(),
-                            InterfaceMAC = adapter.GetPhysicalAddress().ToString(),
-                            InterfaceSpeed = adapter.Speed.ToString(),
-                        };
+                                Name = adapter.Name,
+                                InterfaceDescription = adapter.Description,
+                                InterfaceType = adapter.NetworkInterfaceType.ToString(),
+                                IpAddress = UnicastAddresses.Address.ToString(),
+                                IPv4Mask = UnicastAddresses.IPv4Mask.ToString(),
+                                GateWay = props.GatewayAddresses.FirstOrDefault()!.Address.ToString(),
+                                InterfaceMAC = adapter.GetPhysicalAddress().ToString(),
+                                InterfaceSpeed = adapter.Speed.ToString(),
+                            };
 
-                        networkInterfaces.Add(network);
+                            networkInterfaces.Add(network);
+                        }
                     }
+                    InterfacesList = networkInterfaces; // Реализовать SharPcap и PacketDotNet прослушку траффика.
+
+                    CaptureDeviceList devices = CaptureDeviceList.Instance;
+                    foreach(ICaptureDevice dev in devices)
+                    {
+                        Debug.WriteLine(dev.ToString());
+                    }
+
+                    RefreshGlobasIPStatsCommand.Execute(null);
                 }
-                InterfacesList = networkInterfaces;
-                GetInterfaceStatisticsInfo(listBox!);
+            }
+            catch (Exception ex)
+            {
+                var box = MessageBoxManager.GetMessageBoxStandard("Ошибка профилирования", ex.Message, MsBox.Avalonia.Enums.ButtonEnum.Ok);
+
+                box.ShowAsync();
+                return;
             }
         }
 
         [RelayCommand]
         private void GetInterfaceStatisticsInfo(SelectionChangedEventArgs? e) // При выборе элемента из списка
-        {
+        { // ---------------------------------------------------------------------------- WIP
             ListBox list = (e!.Source as ListBox)!;
             IEnumerable<Interfaces> itemsList = list.SelectedItems!.Cast<Interfaces>();
 
             try
             {
-                if (AllChecked)
+                if (itemsList.Count() > 0)
                 {
-                    //AllChecked = false;
-                    ListBoxChoosenItems = itemsList.ToList();
-
-                    ListBoxChoosenItems.ForEach(x => Debug.WriteLine($"{x.Name}"));
-                }
-                else
-                {
+                    AllChecked = false;
                     ListBoxChoosenItems = itemsList.ToList();
 
                     ListBoxChoosenItems.ForEach(x => Debug.WriteLine($"{x.Name}"));
 
+                    StatisticsDataGrid!.ItemsSource = ListBoxChoosenItems;
                 }
-
+                return;
             }
-            catch (NullReferenceException)
+            catch (Exception ex)
             {
+                var box = MessageBoxManager.GetMessageBoxStandard("Ошибка выбора интерфейсов", ex.Message, MsBox.Avalonia.Enums.ButtonEnum.Ok);
+
+                box.ShowAsync();
                 return;
             }
 
         }
+        [RelayCommand(IncludeCancelCommand = true)]
+        private async Task RefreshGlobasIPStats(CancellationToken token)
+        {
+            try
+            {
+                NetworkInterface currentAdapter;
+
+                while (true)
+                {
+                    token.ThrowIfCancellationRequested();
+                    await Task.Delay(1000);
+
+                    foreach (Interfaces inter in InterfacesList!)
+                    {
+                        currentAdapter = Adapters.First(x => x.Description == inter.InterfaceDescription);
+                       
+                        inter.Statistics = currentAdapter.GetIPStatistics();
+                    }
+                }
+            } catch (Exception ex)
+            {
+                CanStartProfiling = true;
+                InterfacesList!.Clear();
+                Debug.WriteLine(ex.Message);
+            }
+        }
+
+
         [RelayCommand(CanExecute = nameof(AllChecked))]
-        private void LoadAllItems()
+        private void LoadAllItems() // загружает все элементы в listbox, если проставить чекбокс
         {
             try
             {
                 ListBoxChoosenItems.Clear();
-
-                foreach (Interfaces item in listBox.Items)
-                {
-                    Debug.WriteLine(item.InterfaceDescription);
-                }
-
+                StatisticsDataGrid!.ItemsSource = InterfacesList;
+                listBox!.UnselectAll();
+                return;
             }
-            catch (NullReferenceException)
+            catch (Exception ex)
             {
+                var box = MessageBoxManager.GetMessageBoxStandard("Ошибка загрузки статистики", ex.Message, MsBox.Avalonia.Enums.ButtonEnum.Ok);
+
+                box.ShowAsync();
+
                 return;
             }
         }
@@ -136,37 +187,11 @@ namespace DiplomaShark.ViewModels
                                                            // CommunityToolkit создать свое собственное подходящее событие для списка и т.д
         {
             listBox = (e!.Source as ListBox)!;
-
         }
         [RelayCommand]
-        private void GetDatagridPointer(RoutedEventArgs? e) 
+        private void GetDatagridPointer(RoutedEventArgs? e)
         {
             StatisticsDataGrid = (e!.Source as DataGrid)!;
         }
-
-        private void GetInterfaceStatisticsInfo(ListBox list)
-        { // ДОДЕЛАТЬ
-            
-            try
-            {
-                if (AllChecked)
-                {
-                    foreach (Interfaces item in list.Items)
-                    {
-                        Debug.WriteLine(item.InterfaceDescription);
-                    }
-                } else
-                {
-                    return;
-                }
-                
-            }
-            catch (NullReferenceException)
-            {
-                return;
-            }
-
-        }
-
     }
 }

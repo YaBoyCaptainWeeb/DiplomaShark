@@ -1,20 +1,21 @@
-﻿using System;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using System;
 using System.Net.NetworkInformation;
-using Tmds.DBus.Protocol;
 
 namespace DiplomaShark.Models
 {
-    internal class Interfaces
+    internal partial class Interfaces : ObservableObject
     {
-        public IPInterfaceStatistics Statistics { get; set; }
+        [ObservableProperty]
+        private IPInterfaceStatistics? _statistics;
         private string? _name;
-        public string Name
+        public string? Name
         {
             get => $"{(_name != string.Empty ? _name : "\nНе определено")}";
             set => _name = value;
         }
         private string? _interfaceDescription;
-        public string InterfaceDescription
+        public string? InterfaceDescription
         {
             get => $"{(_interfaceDescription != string.Empty ? _interfaceDescription : "\nНе определено")}";
             set
@@ -24,7 +25,7 @@ namespace DiplomaShark.Models
         }
 
         private string? _interfaceType;
-        public string InterfaceType
+        public string? InterfaceType
         {
             get => $"{(_interfaceType != string.Empty ? _interfaceType : "\nНе определено")}";
             set
@@ -34,28 +35,28 @@ namespace DiplomaShark.Models
         }
 
         private string? _ipAddress;
-        public string IpAddress
+        public string? IpAddress
         {
             get => _ipAddress != string.Empty ? _ipAddress : "\nНе определено";
             set => _ipAddress = value;
         }
 
         private string? _IPv4Mask;
-        public string IPv4Mask
+        public string? IPv4Mask
         {
             get => _IPv4Mask != string.Empty ? _IPv4Mask : "\nНе определено";
             set => _IPv4Mask = value;
         }
 
         private string? _GateWay;
-        public string GateWay
+        public string? GateWay
         {
             get => _GateWay != string.Empty ? _GateWay : "\nНе определено";
             set => _GateWay = value;
         }
 
         private string? _interfaceMAC;
-        public string InterfaceMAC
+        public string? InterfaceMAC
         {
             get => $"{(_interfaceMAC != string.Empty ? _interfaceMAC : "\nНе определено")}";
             set
@@ -65,7 +66,7 @@ namespace DiplomaShark.Models
         }
 
         private int? _interfaceSpeed;
-        public string InterfaceSpeed
+        public string? InterfaceSpeed
         {
             get => $"{_interfaceSpeed / 1000000} Мб/с";
             set
