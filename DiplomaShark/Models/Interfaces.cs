@@ -8,6 +8,9 @@ namespace DiplomaShark.Models
     {
         [ObservableProperty]
         private IPInterfaceStatistics? _statistics;
+        [ObservableProperty]
+        private SocketSniffer? _socketSniff;
+
         private string? _name;
         public string? Name
         {
@@ -22,6 +25,7 @@ namespace DiplomaShark.Models
             {
                 _interfaceDescription = value;
             }
+
         }
 
         private string? _interfaceType;

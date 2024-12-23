@@ -19,10 +19,11 @@
     TransparencyLevelHint="AcrylicBlur"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
-
+    <!--
     <Design.DataContext>
         <vm:InterfacesViewModel />
-    </Design.DataContext>
+    </Design.DataContext>-->
+
 
     <Panel>
         <ExperimentalAcrylicBorder IsHitTestVisible="False">
@@ -68,14 +69,6 @@
                         DockPanel.Dock="Top"
                         Text="Список сетевых интерфейсов" />
                     <Separator DockPanel.Dock="Top" />
-                    <CheckBox
-                        Margin="0,5,0,0"
-                        HorizontalAlignment="Center"
-                        HorizontalContentAlignment="Center"
-                        Command="{Binding LoadAllItemsCommand}"
-                        Content="Отобразить информацию обо всех интерфейсах сразу"
-                        DockPanel.Dock="Top"
-                        IsChecked="{Binding AllChecked, Mode=TwoWay}" />
                     <ScrollViewer
                         Margin="0,5,0,0"
                         HorizontalAlignment="Stretch"
@@ -93,7 +86,7 @@
                                 AutoScrollToSelectedItem="True"
                                 Background="Transparent"
                                 ItemsSource="{Binding InterfacesList, Mode=OneWay}"
-                                SelectionMode="Multiple">
+                                SelectionMode="Single">
                                 <Interaction.Behaviors>
                                     <EventTriggerBehavior EventName="SelectionChanged">
                                         <InvokeCommandAction Command="{Binding GetInterfaceStatisticsInfoCommand}" PassEventArgsToCommand="True" />
@@ -176,11 +169,6 @@
                                         <EventTriggerBehavior EventName="Loaded">
                                             <InvokeCommandAction Command="{Binding GetDatagridPointerCommand}" PassEventArgsToCommand="True" />
                                         </EventTriggerBehavior>
-                                        <!--
-										<EventTriggerBehavior EventName="PropertyChanged">
-											<InvokeCommandAction Command="{Binding "
-										</EventTriggerBehavior>
-										-->
                                     </Interaction.Behaviors>
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Binding="{Binding InterfaceDescription}" Header="Интерфейс" />
@@ -195,16 +183,73 @@
                                 </DataGrid>
                             </StackPanel>
                         </Border>
-
                     </DockPanel>
+
                     <Border
                         Margin="0,5,0,0"
                         Classes="ItemsBorder"
                         DockPanel.Dock="Top">
                         <DataGrid
                             AutoGenerateColumns="False"
+                            CanUserReorderColumns="True"
+                            CanUserResizeColumns="True"
+                            CanUserSortColumns="True"
                             DockPanel.Dock="Top"
-                            ItemsSource="" />
+                            GridLinesVisibility="All"
+                            IsReadOnly="True"
+                            ItemsSource="{Binding Packets, Mode=OneWay}"
+                            ScrollViewer.AllowAutoHide="True">
+                            <Interaction.Behaviors>
+                                <EventTriggerBehavior EventName="Loaded">
+                                    <InvokeCommandAction Command="{Binding GetPacketDatagridPointerCommand}" PassEventArgsToCommand="True" />
+                                </EventTriggerBehavior>
+                            </Interaction.Behaviors>
+
+
+                            <DataGrid.Columns>
+                                <DataGridTextColumn
+                                    Width="10*"
+                                    Binding="{Binding Number}"
+                                    Header="Номер #" />
+                                <DataGridTextColumn
+                                    Width="10*"
+                                    Binding="{Binding Time}"
+                                    Header="Время" />
+                                <DataGridTextColumn
+                                    Width="10*"
+                                    Binding="{Binding SourceIPAddress}"
+                                    Header="Источник" />
+                                <DataGridTextColumn
+                                    Width="10*"
+                                    Binding="{Binding DestinationIPAddress}"
+                                    Header="Получатель" />
+                                <DataGridTextColumn
+                                    Width="5*"
+                                    Binding="{Binding ProtocolType}"
+                                    Header="Протокол" />
+
+                                <DataGridTemplateColumn Header="Информация" SortMemberPath="InfoString">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding InfoString}" />
+                                                <Expander>
+                                                    <Panel Background="White">
+                                                        <TextBlock Foreground="Black" Text="{Binding TestString}" />
+                                                        <TextBox
+                                                            Margin="0,30,0,0"
+                                                            Foreground="Black"
+                                                            IsReadOnly="True"
+                                                            Text="{Binding HexContent}" />
+                                                    </Panel>
+                                                </Expander>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
                     </Border>
                 </DockPanel>
             </Border>

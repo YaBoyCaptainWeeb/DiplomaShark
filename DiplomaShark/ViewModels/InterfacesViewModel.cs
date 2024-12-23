@@ -3,6 +3,7 @@ using Avalonia.Interactivity;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DiplomaShark.Models;
+using DiplomaShark.ProtocolSniffers;
 using MsBox.Avalonia;
 using System;
 using System.Collections.Generic;
@@ -14,7 +15,6 @@ using System.Net.Sockets;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using SharpPcap;
 
 namespace DiplomaShark.ViewModels
 {
@@ -24,24 +24,23 @@ namespace DiplomaShark.ViewModels
         [ObservableProperty]
         private ObservableCollection<Interfaces>? _interfacesList = [];
         [ObservableProperty]
-        private bool _AllChecked = true;
+        private ObservableCollection<CapturedPacketInfo>? _packets = [];
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(StartProfilingCommand))]
         private bool _canStartProfiling;
+        [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(GetInterfaceStatisticsInfoCommand))]
+        private bool _canGetInterfaceStatisticsInfo;
         #endregion
 
-        #region Relay комманды
-
-        #endregion
-
-        #region  Внутренние переменные
-        private List<Interfaces> ListBoxChoosenItems = [];
+        #region  Внутренние переменные 
+        private Interfaces? ListBoxChoosenItem; // Переделать на ОДИН выбранный интерфейс
         private List<NetworkInterface> Adapters = [];
         #endregion
 
         #region Controls элементы, указатели
         ListBox? listBox;
-        DataGrid? StatisticsDataGrid;
+        DataGrid? StatisticsDataGrid, PacketsDataGrid;
         #endregion
 
         public InterfacesViewModel()
@@ -73,6 +72,7 @@ namespace DiplomaShark.ViewModels
                             Interfaces network = new Interfaces()
                             {
                                 Statistics = adapter.GetIPStatistics(),
+                                SocketSniff = new SocketSniffer(adapter.Description),
 
                                 Name = adapter.Name,
                                 InterfaceDescription = adapter.Description,
@@ -89,12 +89,9 @@ namespace DiplomaShark.ViewModels
                     }
                     InterfacesList = networkInterfaces; // Реализовать SharPcap и PacketDotNet прослушку траффика.
 
-                    CaptureDeviceList devices = CaptureDeviceList.Instance;
-                    foreach(ICaptureDevice dev in devices)
-                    {
-                        Debug.WriteLine(dev.ToString());
-                    }
-
+                    CanGetInterfaceStatisticsInfo = InterfacesList.Count > 1;
+                    ListBoxChoosenItem = InterfacesList[0];
+                                        
                     RefreshGlobasIPStatsCommand.Execute(null);
                 }
             }
@@ -107,22 +104,20 @@ namespace DiplomaShark.ViewModels
             }
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanGetInterfaceStatisticsInfo))]
         private void GetInterfaceStatisticsInfo(SelectionChangedEventArgs? e) // При выборе элемента из списка
         { // ---------------------------------------------------------------------------- WIP
             ListBox list = (e!.Source as ListBox)!;
-            IEnumerable<Interfaces> itemsList = list.SelectedItems!.Cast<Interfaces>();
+            ObservableCollection<Interfaces> selected = new() { (list.SelectedItem! as Interfaces)! };
 
             try
             {
-                if (itemsList.Count() > 0)
+                if (selected != null && selected[0] != ListBoxChoosenItem)
                 {
-                    AllChecked = false;
-                    ListBoxChoosenItems = itemsList.ToList();
+                    ListBoxChoosenItem = selected[0];
 
-                    ListBoxChoosenItems.ForEach(x => Debug.WriteLine($"{x.Name}"));
-
-                    StatisticsDataGrid!.ItemsSource = ListBoxChoosenItems;
+                    StatisticsDataGrid!.ItemsSource = selected;
+                    Packets = ListBoxChoosenItem!.SocketSniff!.GetCapturedPacketInfos();
                 }
                 return;
             }
@@ -140,48 +135,35 @@ namespace DiplomaShark.ViewModels
         {
             try
             {
-                NetworkInterface currentAdapter;
+                NetworkInterface currentAdapter = Adapters.First(x => x.Description == ListBoxChoosenItem!.InterfaceDescription);
 
+               
                 while (true)
                 {
-                    token.ThrowIfCancellationRequested();
                     await Task.Delay(1000);
 
-                    foreach (Interfaces inter in InterfacesList!)
+                    if (token.IsCancellationRequested)
                     {
-                        currentAdapter = Adapters.First(x => x.Description == inter.InterfaceDescription);
-                       
-                        inter.Statistics = currentAdapter.GetIPStatistics();
+                        ListBoxChoosenItem!.SocketSniff!.StopCapture();
                     }
+
+                    ListBoxChoosenItem!.Statistics = currentAdapter.GetIPStatistics();
+                    Packets = ListBoxChoosenItem!.SocketSniff!.GetCapturedPacketInfos();
+
+                    token.ThrowIfCancellationRequested();
                 }
-            } catch (Exception ex)
-            {
-                CanStartProfiling = true;
-                InterfacesList!.Clear();
-                Debug.WriteLine(ex.Message);
-            }
-        }
-
-
-        [RelayCommand(CanExecute = nameof(AllChecked))]
-        private void LoadAllItems() // загружает все элементы в listbox, если проставить чекбокс
-        {
-            try
-            {
-                ListBoxChoosenItems.Clear();
-                StatisticsDataGrid!.ItemsSource = InterfacesList;
-                listBox!.UnselectAll();
-                return;
             }
             catch (Exception ex)
             {
-                var box = MessageBoxManager.GetMessageBoxStandard("Ошибка загрузки статистики", ex.Message, MsBox.Avalonia.Enums.ButtonEnum.Ok);
+                CanStartProfiling = true;
+                InterfacesList!.Clear();
+                Packets!.Clear();
+                var box = MessageBoxManager.GetMessageBoxStandard("Профилирование закончено", $"Профилирование окончено, либо произошла ошибка. \n{ex.Message}", MsBox.Avalonia.Enums.ButtonEnum.Ok);
 
-                box.ShowAsync();
-
-                return;
+                await box.ShowAsync();
             }
         }
+
         [RelayCommand]
         private void GetListBoxPointer(RoutedEventArgs? e) // Так проще. Изначально хранить указатель на список, вместо того, чтобы пытаться через
                                                            // CommunityToolkit создать свое собственное подходящее событие для списка и т.д
@@ -192,6 +174,11 @@ namespace DiplomaShark.ViewModels
         private void GetDatagridPointer(RoutedEventArgs? e)
         {
             StatisticsDataGrid = (e!.Source as DataGrid)!;
+        }
+        [RelayCommand]
+        private void GetPacketDatagridPointer(RoutedEventArgs? e)
+        {
+            PacketsDataGrid = (e!.Source as DataGrid);
         }
     }
 }
