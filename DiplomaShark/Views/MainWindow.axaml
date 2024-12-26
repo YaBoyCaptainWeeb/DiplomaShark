@@ -10,6 +10,7 @@
     Title="DiplomaShark"
     MinWidth="600"
     MinHeight="500"
+    Margin="5,0,0,0"
     d:DesignHeight="700"
     d:DesignWidth="800"
     x:DataType="vm:InterfacesViewModel"
@@ -18,11 +19,12 @@
     Icon="/Assets/avalonia-logo.ico"
     TransparencyLevelHint="AcrylicBlur"
     WindowStartupLocation="CenterScreen"
+    WindowState="Maximized"
     mc:Ignorable="d">
-    <!--
+
     <Design.DataContext>
         <vm:InterfacesViewModel />
-    </Design.DataContext>-->
+    </Design.DataContext>
 
 
     <Panel>
@@ -44,13 +46,19 @@
                     Header="Начать профилирование" />
                 <Separator Width="1" Height="20" />
                 <MenuItem
-                    Command="{Binding RefreshGlobasIPStatsCancelCommand}"
+                    Command="{Binding StopProfilingCommand}"
                     Foreground="White"
                     Header="Закончить профилирование" />
                 <Separator Width="1" Height="20" />
-                <MenuItem Foreground="White" Header="В разработке" />
+                <MenuItem
+                    Command="{Binding PauseProfilingCommand}"
+                    Foreground="White"
+                    Header="Приостановить профилирование" />
                 <Separator Width="1" Height="20" />
-                <MenuItem Foreground="White" Header="В разработке" />
+                <MenuItem
+                    Command="{Binding ContinueProfilingCommand}"
+                    Foreground="White"
+                    Header="Продолжить профилирование" />
             </Menu>
         </DockPanel>
         <Grid
@@ -192,56 +200,46 @@
                         <DataGrid
                             AutoGenerateColumns="False"
                             CanUserReorderColumns="True"
-                            CanUserResizeColumns="True"
+                            CanUserResizeColumns="False"
                             CanUserSortColumns="True"
                             DockPanel.Dock="Top"
                             GridLinesVisibility="All"
                             IsReadOnly="True"
                             ItemsSource="{Binding Packets, Mode=OneWay}"
-                            ScrollViewer.AllowAutoHide="True">
+                            ScrollViewer.HorizontalScrollBarVisibility="Visible"
+                            ScrollViewer.VerticalScrollBarVisibility="Auto">
                             <Interaction.Behaviors>
                                 <EventTriggerBehavior EventName="Loaded">
                                     <InvokeCommandAction Command="{Binding GetPacketDatagridPointerCommand}" PassEventArgsToCommand="True" />
                                 </EventTriggerBehavior>
                             </Interaction.Behaviors>
-
-
                             <DataGrid.Columns>
-                                <DataGridTextColumn
-                                    Width="10*"
-                                    Binding="{Binding Number}"
-                                    Header="Номер #" />
-                                <DataGridTextColumn
-                                    Width="10*"
-                                    Binding="{Binding Time}"
-                                    Header="Время" />
-                                <DataGridTextColumn
-                                    Width="10*"
-                                    Binding="{Binding SourceIPAddress}"
-                                    Header="Источник" />
-                                <DataGridTextColumn
-                                    Width="10*"
-                                    Binding="{Binding DestinationIPAddress}"
-                                    Header="Получатель" />
-                                <DataGridTextColumn
-                                    Width="5*"
-                                    Binding="{Binding ProtocolType}"
-                                    Header="Протокол" />
+                                <DataGridTextColumn Binding="{Binding Number}" Header="Номер #" />
+                                <DataGridTextColumn Binding="{Binding Time}" Header="Время" />
+                                <DataGridTextColumn Binding="{Binding SourceIPAddress}" Header="Источник" />
+                                <DataGridTextColumn Binding="{Binding DestinationIPAddress}" Header="Получатель" />
+                                <DataGridTextColumn Binding="{Binding ProtocolType}" Header="Протокол" />
 
                                 <DataGridTemplateColumn Header="Информация" SortMemberPath="InfoString">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel>
-                                                <TextBlock Text="{Binding InfoString}" />
+                                                <TextBlock Text="{Binding InfoString}" TextWrapping="WrapWithOverflow" />
                                                 <Expander>
-                                                    <Panel Background="White">
-                                                        <TextBlock Foreground="Black" Text="{Binding TestString}" />
+                                                    <StackPanel Background="White" Orientation="Vertical">
+                                                        <TextBlock
+                                                            Foreground="Black"
+                                                            Text="{Binding TestString}"
+                                                            TextWrapping="Wrap" />
                                                         <TextBox
-                                                            Margin="0,30,0,0"
+                                                            Margin="0,5,0,0"
+                                                            Background="White"
+                                                            Focusable="False"
                                                             Foreground="Black"
                                                             IsReadOnly="True"
-                                                            Text="{Binding HexContent}" />
-                                                    </Panel>
+                                                            Text="{Binding HexContent}"
+                                                            TextWrapping="Wrap" />
+                                                    </StackPanel>
                                                 </Expander>
                                             </StackPanel>
                                         </DataTemplate>

@@ -18,8 +18,6 @@ namespace DiplomaShark.ProtocolSniffers
         private int? IcmpId;
         private int length;
         private int TTL;
-        [ObservableProperty] // сделать цвет в datagrid???
-        private string color;
         [ObservableProperty]
         private ProtocolType protocolType;
         [ObservableProperty]
@@ -53,7 +51,7 @@ namespace DiplomaShark.ProtocolSniffers
             int number, int length, int tTL,
             ProtocolType protocolType,
             string destinationIPAddress, string destinationPort, string sourceIPAddress, string sourcePort,
-            string time,string color,
+            string time,
             string hexContent, string testString,
             string? flags = null, string? sequenceNumber = null, bool? aCK = null, string? aCKNum = null,
             string? wIN = null, bool? pUSH = null, bool? rESET = null, bool? sYNC = null,
@@ -69,7 +67,6 @@ namespace DiplomaShark.ProtocolSniffers
             this.sourceIPAddress = sourceIPAddress;
             this.sourcePort = sourcePort;
             this.time = time;
-            Color = color;
             this.hexContent = hexContent;
             this.testString = testString;
             this.flags = flags;
@@ -93,28 +90,19 @@ namespace DiplomaShark.ProtocolSniffers
                 switch (this.ProtocolType)
                 {
                     case ProtocolType.TCP:
-                        if (ACK == true)
-                        {
-                            return $"{sourcePort}->{destinationPort} TTL={TTL} [ACK={ACK}] ACKNum={ACKNum} Seq={sequenceNumber} Win={WIN} Len={length}" + "\n" +
-                                  $"PSH={PUSH} RST={RESET} FIN={FIN}" + (URGENT == true ? $"URG={URGENT} URG_Pointer={urgentPointer}" : "");
-                        }
-                        else if (SYNC == true)
-                        {
-                            return $"{sourcePort} -> {destinationPort} TTL={TTL} [SYN={SYNC}] Seq={sequenceNumber} Win={WIN} Len={length}" + "\n" +
-                                                        $"PSH={PUSH} RST={RESET} FIN={FIN}" + (URGENT == true ? $"URG={URGENT} URG_Pointer={urgentPointer}" : "");
-                        } else
-                        {
-                            return $"{sourcePort} -> {destinationPort} TTL={TTL} [ACK={ACK}] ACKNum={ACKNum} [SYN={SYNC}] Seq={sequenceNumber} Win={WIN} Len={length}" + "\n" +
-                                                        $"PSH={PUSH} RST={RESET} FIN={FIN}" + (URGENT == true ? $"URG={URGENT} URG_Pointer={urgentPointer}" : "");
-                        }
+                        return $"{sourcePort}->{destinationPort} TTL={TTL} {{[SYN={SYNC}] | [ACK={ACK}]}} ACKNum={ACKNum} \nSeq={sequenceNumber} Win={WIN} Len={length}" + "\n" +
+                              $"PSH={PUSH} RST={RESET} FIN={FIN}" + (URGENT == true ? $"URG={URGENT} URG_Pointer={urgentPointer}" : $"URG={URGENT}");
+
 
                     case ProtocolType.UDP:
                         return $"{sourcePort} -> {destinationPort} TTL={TTL} Len={length}";
 
                     case ProtocolType.ICMP:
-                        return $"{sourcePort} -> {destinationPort} ICMP_Id={IcmpId}";
-                        case ProtocolType.IGMP:
-                        return $"{sourcePort} -> {destinationPort} IGMP_Type={IGMPType}";
+                        return $"{sourcePort} -> {destinationPort} TTL={TTL} ICMP_Id={IcmpId}";
+
+                    case ProtocolType.IGMP:
+                        return $"{sourcePort} -> {destinationPort} TTL={TTL} IGMP_Type={IGMPType}";
+
                     default:
                         return TestString;
                 }

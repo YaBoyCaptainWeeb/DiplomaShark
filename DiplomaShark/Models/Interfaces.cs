@@ -1,10 +1,11 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using DiplomaShark.ViewModels;
 using System;
 using System.Net.NetworkInformation;
 
 namespace DiplomaShark.Models
 {
-    internal partial class Interfaces : ObservableObject
+    internal partial class Interfaces : ViewModelBase
     {
         [ObservableProperty]
         private IPInterfaceStatistics? _statistics;

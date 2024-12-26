@@ -1,9 +1,8 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using DiplomaShark.ProtocolSniffers;
+﻿using DiplomaShark.ProtocolSniffers;
 using PacketDotNet;
 using SharpPcap;
+using SkiaSharp;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
@@ -24,7 +23,7 @@ namespace DiplomaShark.Models
         Packet? packet;
 
 
-        Task? task;
+        //Task? task;
         CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
         CancellationToken cancel;
 
@@ -50,23 +49,31 @@ namespace DiplomaShark.Models
 
             captureDevice.Open(DeviceModes.Promiscuous, 1000);
             cancel = cancellationTokenSource.Token;
-            task = new Task(OnPacketArrival, cancel);
-
-            task.Start();
+            Task.Run(OnPacketArrival, cancel);
         }
 
         public void StopCapture()
         {
             cancellationTokenSource.Cancel();
             captureDevice!.Close();
+        } 
+
+        public void PauseCapture()
+        {
+            cancellationTokenSource.Cancel();
+            //task!.Dispose();
         }
 
+        public void ContinueCapture()
+        {
+            Task.Run(OnPacketArrival, cancel);
+        }
         public ObservableCollection<CapturedPacketInfo> GetCapturedPacketInfos() // Попробовать с коллекцией Packets во ViewModel
         {
             return Packets!;
         }
 
-        private void OnPacketArrival()
+        private async void OnPacketArrival()
         {
             try
             {
@@ -103,11 +110,11 @@ namespace DiplomaShark.Models
                         BuildCapturedIGMPPacket(igmp);
                         Counter++;
                     }
-                    
+
 
                     Packets = new ObservableCollection<CapturedPacketInfo>(capturedPacketInfos!);
 
-                    task!.Wait(1000);
+                    await Task.Delay(3000);
                 }
             }
             catch (Exception ex)
@@ -125,7 +132,7 @@ namespace DiplomaShark.Models
                 DateTime time = raw!.Timeval.Date;
                 int length = tcp.TotalPacketLength;
                 int ttl = tcpIP.TimeToLive;
-                string color = tcp.Color;
+
 
 
                 string flags = ((int)tcp.Flags).ToString();
@@ -144,7 +151,7 @@ namespace DiplomaShark.Models
 
                 CapturedPacketInfo pack = new CapturedPacketInfo(
                     Counter, length, ttl, ProtocolSniffers.ProtocolType.TCP,
-                    destinationIPAddress, destinationPort, sourceIPAddress, sourcePort, time.ToString("HH:mm:ss.ffff"),color, tcp.PrintHex(), tcp.ToString(),
+                    destinationIPAddress, destinationPort, sourceIPAddress, sourcePort, time.ToString("HH:mm:ss.ffff"), tcp.PrintHex(), tcp.ToString(StringOutputType.VerboseColored),
                     flags, sequenceNum, ACK, ACKNum, WIN, push, reset, sync, finished, urgent, urgentPointer
                     );
 
@@ -161,7 +168,7 @@ namespace DiplomaShark.Models
                 DateTime time = raw!.Timeval.Date;
                 int length = udp.TotalPacketLength;
                 int ttl = udpIP.TimeToLive;
-                string color = udp.Color;
+
 
                 string sourceIPAddress = udpIP.SourceAddress.ToString();
                 string sourcePort = udp.SourcePort.ToString();
@@ -170,7 +177,7 @@ namespace DiplomaShark.Models
 
                 CapturedPacketInfo pack = new CapturedPacketInfo(Counter, length, ttl, ProtocolSniffers.ProtocolType.UDP,
                     destinationIPAddress, destinationPort, sourceIPAddress, sourcePort,
-                    time.ToString("dd/MM/yyyy HH:mm:ss.ffff"),color, udp.PrintHex(), udp.ToString());
+                    time.ToString("dd/MM/yyyy HH:mm:ss.ffff"), udp.PrintHex(), udp.ToString());
 
                 capturedPacketInfos!.Add(pack);
             }
@@ -185,7 +192,6 @@ namespace DiplomaShark.Models
                 DateTime time = raw!.Timeval.Date;
                 int length = icmp.TotalPacketLength;
                 int ttl = ICMPIP.TimeToLive;
-                string color = icmp.Color;
 
                 string sourceIPAddress = ICMPIP.SourceAddress.ToString();
                 string sourcePort = string.Empty;
@@ -196,7 +202,7 @@ namespace DiplomaShark.Models
                 int id = icmp.Id;
 
                 CapturedPacketInfo pack = new CapturedPacketInfo(Counter, length, ttl, ProtocolSniffers.ProtocolType.ICMP,
-                    destinationIPAddress, destinationPort, sourceIPAddress, sourcePort, time.ToString("HH:mm:ss.ffff"),color,
+                    destinationIPAddress, destinationPort, sourceIPAddress, sourcePort, time.ToString("HH:mm:ss.ffff"),
                     icmp.PrintHex(), icmp.ToString(), icmpId: id
                     );
 
@@ -213,7 +219,6 @@ namespace DiplomaShark.Models
                 DateTime time = raw!.Timeval.Date;
                 int length = igmp.TotalPacketLength;
                 int ttl = IGMPIP.TimeToLive;
-                string color = igmp.Color;
 
                 string sourceIPAddress = IGMPIP.SourceAddress.ToString();
                 string sourcePort = string.Empty;
@@ -223,7 +228,7 @@ namespace DiplomaShark.Models
                 string type = igmp.Type.ToString();
 
                 CapturedPacketInfo pack = new CapturedPacketInfo(Counter, length, ttl, ProtocolSniffers.ProtocolType.IGMP,
-                    destinationIPAddress, destinationPort, sourceIPAddress, sourcePort, time.ToString("HH:mm:ss.ffff"),color,
+                    destinationIPAddress, destinationPort, sourceIPAddress, sourcePort, time.ToString("HH:mm:ss.ffff"),
                     igmp.PrintHex(), igmp.ToString(), iGMPType: type
                     );
 

@@ -8,7 +8,6 @@ using MsBox.Avalonia;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
@@ -23,19 +22,37 @@ namespace DiplomaShark.ViewModels
         #region Поля
         [ObservableProperty]
         private ObservableCollection<Interfaces>? _interfacesList = [];
+
         [ObservableProperty]
         private ObservableCollection<CapturedPacketInfo>? _packets = [];
+
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(StartProfilingCommand))]
         private bool _canStartProfiling;
+
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(GetInterfaceStatisticsInfoCommand))]
         private bool _canGetInterfaceStatisticsInfo;
+
+        [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(PauseProfilingCommand))]
+        private bool _canPauseProfiling = false;
+
+        [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(ContinueProfilingCommand))]
+        private bool _canContinueProfiling = false;
+
+        [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(StopProfilingCommand))]
+        private bool _canStopProfiling = false;
         #endregion
 
         #region  Внутренние переменные 
         private Interfaces? ListBoxChoosenItem; // Переделать на ОДИН выбранный интерфейс
         private List<NetworkInterface> Adapters = [];
+        private bool PauseOrNot;
+
+
         #endregion
 
         #region Controls элементы, указатели
@@ -52,7 +69,11 @@ namespace DiplomaShark.ViewModels
         {
             try
             {
+                PauseOrNot = false;
                 CanStartProfiling = false;
+                CanStopProfiling = true;
+                CanPauseProfiling = true;
+
                 Adapters = NetworkInterface.GetAllNetworkInterfaces()
                 .Where(x => x.OperationalStatus == OperationalStatus.Up && (x.NetworkInterfaceType == NetworkInterfaceType.Ethernet || x.NetworkInterfaceType == NetworkInterfaceType.Wireless80211))
                     .ToList();
@@ -91,7 +112,7 @@ namespace DiplomaShark.ViewModels
 
                     CanGetInterfaceStatisticsInfo = InterfacesList.Count > 1;
                     ListBoxChoosenItem = InterfacesList[0];
-                                        
+
                     RefreshGlobasIPStatsCommand.Execute(null);
                 }
             }
@@ -137,15 +158,10 @@ namespace DiplomaShark.ViewModels
             {
                 NetworkInterface currentAdapter = Adapters.First(x => x.Description == ListBoxChoosenItem!.InterfaceDescription);
 
-               
+
                 while (true)
                 {
-                    await Task.Delay(1000);
-
-                    if (token.IsCancellationRequested)
-                    {
-                        ListBoxChoosenItem!.SocketSniff!.StopCapture();
-                    }
+                    await Task.Delay(3000);
 
                     ListBoxChoosenItem!.Statistics = currentAdapter.GetIPStatistics();
                     Packets = ListBoxChoosenItem!.SocketSniff!.GetCapturedPacketInfos();
@@ -155,15 +171,77 @@ namespace DiplomaShark.ViewModels
             }
             catch (Exception ex)
             {
-                CanStartProfiling = true;
-                InterfacesList!.Clear();
-                Packets!.Clear();
-                var box = MessageBoxManager.GetMessageBoxStandard("Профилирование закончено", $"Профилирование окончено, либо произошла ошибка. \n{ex.Message}", MsBox.Avalonia.Enums.ButtonEnum.Ok);
+                if (ex is OperationCanceledException)
+                {
+                    if (PauseOrNot)
+                    {
+                        ListBoxChoosenItem!.SocketSniff!.StopCapture();
+                        CanStartProfiling = true;
+                        CanStopProfiling = false;
+                        CanPauseProfiling = false;
+                        CanContinueProfiling = false;
+                        InterfacesList = [];
+                        Packets = [];
+                        var msgbox = MessageBoxManager.GetMessageBoxStandard("Профилирование закончено", $"Профилирование остановлено", MsBox.Avalonia.Enums.ButtonEnum.Ok);
 
-                await box.ShowAsync();
+                        await msgbox.ShowAsync();
+                    }
+                    else
+                    {
+                        var box = MessageBoxManager.GetMessageBoxStandard("Профилирование приостановлено", $"Профилирование приостановлено", MsBox.Avalonia.Enums.ButtonEnum.Ok, windowStartupLocation: WindowStartupLocation.CenterOwner);
+
+                        await box.ShowAsync();
+                    }
+                }
+                else
+                {
+                    var box = MessageBoxManager.GetMessageBoxStandard("Ошибка", ex.Message, MsBox.Avalonia.Enums.ButtonEnum.Ok, windowStartupLocation: WindowStartupLocation.CenterOwner);
+
+                    await box.ShowAsync();
+                }
+
             }
         }
+        [RelayCommand(CanExecute = nameof(CanStopProfiling))]
+        private void StopProfiling()
+        {
+            PauseOrNot = true;
+            if (RefreshGlobasIPStatsCancelCommand.CanExecute(null))
+            {
+                RefreshGlobasIPStatsCancelCommand.Execute(null);
+            } else
+            {
+                ListBoxChoosenItem!.SocketSniff!.StopCapture();
+                CanStartProfiling = true;
+                CanStopProfiling = false;
+                CanPauseProfiling = false;
+                CanContinueProfiling = false;
+                InterfacesList = [];
+                Packets = [];
+                var msgbox = MessageBoxManager.GetMessageBoxStandard("Профилирование закончено", $"Профилирование остановлено", MsBox.Avalonia.Enums.ButtonEnum.Ok, windowStartupLocation: WindowStartupLocation.CenterOwner);
 
+                msgbox.ShowAsync();
+            }
+        }
+        [RelayCommand(CanExecute = nameof(CanPauseProfiling))]
+        private void PauseProfiling()
+        {
+            CanPauseProfiling = false;
+            CanContinueProfiling = true;
+
+            ListBoxChoosenItem?.SocketSniff?.PauseCapture();
+            RefreshGlobasIPStatsCancelCommand.Execute(null);
+
+        }
+        [RelayCommand(CanExecute = nameof(CanContinueProfiling))]
+        private void ContinueProfiling()
+        {
+            CanContinueProfiling = false;
+            CanPauseProfiling = true;
+
+            RefreshGlobasIPStatsCommand.Execute(null);
+            ListBoxChoosenItem?.SocketSniff?.ContinueCapture();
+        }
         [RelayCommand]
         private void GetListBoxPointer(RoutedEventArgs? e) // Так проще. Изначально хранить указатель на список, вместо того, чтобы пытаться через
                                                            // CommunityToolkit создать свое собственное подходящее событие для списка и т.д
