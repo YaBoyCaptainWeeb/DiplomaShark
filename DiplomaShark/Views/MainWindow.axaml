@@ -197,57 +197,65 @@
                         Margin="0,5,0,0"
                         Classes="ItemsBorder"
                         DockPanel.Dock="Top">
-                        <DataGrid
-                            AutoGenerateColumns="False"
-                            CanUserReorderColumns="True"
-                            CanUserResizeColumns="False"
-                            CanUserSortColumns="True"
-                            DockPanel.Dock="Top"
-                            GridLinesVisibility="All"
-                            IsReadOnly="True"
-                            ItemsSource="{Binding Packets, Mode=OneWay}"
-                            ScrollViewer.HorizontalScrollBarVisibility="Visible"
-                            ScrollViewer.VerticalScrollBarVisibility="Auto">
-                            <Interaction.Behaviors>
-                                <EventTriggerBehavior EventName="Loaded">
-                                    <InvokeCommandAction Command="{Binding GetPacketDatagridPointerCommand}" PassEventArgsToCommand="True" />
-                                </EventTriggerBehavior>
-                            </Interaction.Behaviors>
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Binding="{Binding Number}" Header="Номер #" />
-                                <DataGridTextColumn Binding="{Binding Time}" Header="Время" />
-                                <DataGridTextColumn Binding="{Binding SourceIPAddress}" Header="Источник" />
-                                <DataGridTextColumn Binding="{Binding DestinationIPAddress}" Header="Получатель" />
-                                <DataGridTextColumn Binding="{Binding ProtocolType}" Header="Протокол" />
+                        <StackPanel Spacing="5">
+                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                <Label Content="Количество пакетов:" />
+                                <TextBlock VerticalAlignment="Center" Text="{Binding Packets.Count}" />
+                            </StackPanel>
+                            <DataGrid
+                                MaxHeight="700"
+                                AutoGenerateColumns="False"
+                                CanUserReorderColumns="True"
+                                CanUserResizeColumns="False"
+                                CanUserSortColumns="True"
+                                DockPanel.Dock="Top"
+                                GridLinesVisibility="All"
+                                IsReadOnly="True"
+                                ItemsSource="{Binding Packets, Mode=OneWay}"
+                                ScrollViewer.HorizontalScrollBarVisibility="Visible"
+                                ScrollViewer.IsDeferredScrollingEnabled="True"
+                                ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                <Interaction.Behaviors>
+                                    <EventTriggerBehavior EventName="Loaded">
+                                        <InvokeCommandAction Command="{Binding GetPacketDatagridPointerCommand}" PassEventArgsToCommand="True" />
+                                    </EventTriggerBehavior>
+                                </Interaction.Behaviors>
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Binding="{Binding Number}" Header="Номер #" />
+                                    <DataGridTextColumn Binding="{Binding Time}" Header="Время" />
+                                    <DataGridTextColumn Binding="{Binding SourceIPAddress}" Header="Источник" />
+                                    <DataGridTextColumn Binding="{Binding DestinationIPAddress}" Header="Получатель" />
+                                    <DataGridTextColumn Binding="{Binding ProtocolType}" Header="Протокол" />
 
-                                <DataGridTemplateColumn Header="Информация" SortMemberPath="InfoString">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <StackPanel>
-                                                <TextBlock Text="{Binding InfoString}" TextWrapping="WrapWithOverflow" />
-                                                <Expander>
-                                                    <StackPanel Background="White" Orientation="Vertical">
-                                                        <TextBlock
-                                                            Foreground="Black"
-                                                            Text="{Binding TestString}"
-                                                            TextWrapping="Wrap" />
-                                                        <TextBox
-                                                            Margin="0,5,0,0"
-                                                            Background="White"
-                                                            Focusable="False"
-                                                            Foreground="Black"
-                                                            IsReadOnly="True"
-                                                            Text="{Binding HexContent}"
-                                                            TextWrapping="Wrap" />
-                                                    </StackPanel>
-                                                </Expander>
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
+                                    <DataGridTemplateColumn Header="Информация" SortMemberPath="InfoString">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding InfoString}" TextWrapping="WrapWithOverflow" />
+                                                    <Expander>
+                                                        <StackPanel Background="White" Orientation="Vertical">
+                                                            <TextBlock
+                                                                Foreground="Black"
+                                                                Text="{Binding TestString}"
+                                                                TextWrapping="Wrap" />
+                                                            <TextBox
+                                                                Margin="0,5,0,0"
+                                                                Background="White"
+                                                                Focusable="False"
+                                                                Foreground="Black"
+                                                                IsReadOnly="True"
+                                                                Text="{Binding HexContent}"
+                                                                TextWrapping="Wrap" />
+                                                        </StackPanel>
+                                                    </Expander>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
 
-                                </DataGridTemplateColumn>
-                            </DataGrid.Columns>
-                        </DataGrid>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </StackPanel>
                     </Border>
                 </DockPanel>
             </Border>

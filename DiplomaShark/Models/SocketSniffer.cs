@@ -132,9 +132,7 @@ namespace DiplomaShark.Models
                 DateTime time = raw!.Timeval.Date;
                 int length = tcp.TotalPacketLength;
                 int ttl = tcpIP.TimeToLive;
-
-
-
+                
                 string flags = ((int)tcp.Flags).ToString();
                 string sequenceNum = tcp.SequenceNumber.ToString();
                 bool ACK = tcp.Acknowledgment;

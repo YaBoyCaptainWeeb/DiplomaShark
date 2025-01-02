@@ -91,7 +91,7 @@ namespace DiplomaShark.ProtocolSniffers
                 {
                     case ProtocolType.TCP:
                         return $"{sourcePort}->{destinationPort} TTL={TTL} {{[SYN={SYNC}] | [ACK={ACK}]}} ACKNum={ACKNum} \nSeq={sequenceNumber} Win={WIN} Len={length}" + "\n" +
-                              $"PSH={PUSH} RST={RESET} FIN={FIN}" + (URGENT == true ? $"URG={URGENT} URG_Pointer={urgentPointer}" : $"URG={URGENT}");
+                              $"PSH={PUSH} RST={RESET} FIN={FIN} " + (URGENT == true ? $"URG={URGENT} URG_Pointer={urgentPointer}" : $"URG={URGENT}");
 
 
                     case ProtocolType.UDP:

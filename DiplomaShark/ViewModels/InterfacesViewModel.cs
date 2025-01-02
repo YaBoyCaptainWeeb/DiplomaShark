@@ -162,7 +162,7 @@ namespace DiplomaShark.ViewModels
                 while (true)
                 {
                     await Task.Delay(3000);
-
+      
                     ListBoxChoosenItem!.Statistics = currentAdapter.GetIPStatistics();
                     Packets = ListBoxChoosenItem!.SocketSniff!.GetCapturedPacketInfos();
 
