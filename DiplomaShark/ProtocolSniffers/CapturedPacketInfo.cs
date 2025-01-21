@@ -9,6 +9,7 @@ namespace DiplomaShark.ProtocolSniffers
         UDP,
         ICMP,
         IGMP,
+        ARP,
         Uknown
     }
     public partial class CapturedPacketInfo : ViewModelBase
@@ -46,6 +47,15 @@ namespace DiplomaShark.ProtocolSniffers
         private bool? URGENT = null;
         private int? urgentPointer = null;
         private string? IGMPType = null;
+        private int? HardwareAddressLength = null;
+        private string? HardwareAddressType = null;
+        private string? Operation = null;
+        private int? ProtocolAddressLength = null;
+        private string? ProtocolAddressType = null;
+        private string? SenderHardwareAddress = null;
+        private string? SenderProtocolAddress = null;
+        private string? TargetHardwarAaddress = null;
+        private string? TargetProtocolAddress = null;
 
         public CapturedPacketInfo(
             int number, int length, int tTL,
@@ -55,7 +65,10 @@ namespace DiplomaShark.ProtocolSniffers
             string hexContent, string testString,
             string? flags = null, string? sequenceNumber = null, bool? aCK = null, string? aCKNum = null,
             string? wIN = null, bool? pUSH = null, bool? rESET = null, bool? sYNC = null,
-            bool? fIN = null, bool? uRGENT = null, int? urgentPointer = null, int? icmpId = null, string? iGMPType = null)
+            bool? fIN = null, bool? uRGENT = null, int? urgentPointer = null, int? icmpId = null, string? iGMPType = null,
+            string? protocoladresstype = null, int? protocoladdresslength = null,
+            int? hardwareAddressLength = null, string? hardwareAddressType = null, string? senderHardwareAddress = null,
+            string? senderProtocolAddress = null, string? targetHardwarAaddress = null, string? targetProtocolAddress = null, string? operation = null)
         {
             this.number = number;
             IcmpId = icmpId;
@@ -81,6 +94,14 @@ namespace DiplomaShark.ProtocolSniffers
             URGENT = uRGENT;
             this.urgentPointer = urgentPointer;
             IGMPType = iGMPType;
+            ProtocolAddressType = protocoladresstype;
+            ProtocolAddressLength = protocoladdresslength;
+            HardwareAddressLength = hardwareAddressLength;
+            HardwareAddressType = hardwareAddressType;
+            SenderHardwareAddress = senderHardwareAddress;
+            SenderProtocolAddress = senderProtocolAddress;
+            TargetHardwarAaddress = targetHardwarAaddress;
+            TargetProtocolAddress = targetProtocolAddress;
         }
 
         public string InfoString
@@ -102,6 +123,11 @@ namespace DiplomaShark.ProtocolSniffers
 
                     case ProtocolType.IGMP:
                         return $"{sourcePort} -> {destinationPort} TTL={TTL} IGMP_Type={IGMPType}";
+
+                    case ProtocolType.ARP:
+                        return $"{sourcePort} -> {destinationPort} TTL={TTL} HardwareAddressLength={HardwareAddressLength} HardwareAddressType={HardwareAddressType} \n" +
+                            $"ProtocolAddressLength={ProtocolAddressLength} SenderHardwareAddress={SenderHardwareAddress} SebderProtocolAddress={SenderProtocolAddress} \n" +
+                            $"TargetHardwareAddress={TargetHardwarAaddress} TargetProtocolAddress={TargetProtocolAddress}";
 
                     default:
                         return TestString;

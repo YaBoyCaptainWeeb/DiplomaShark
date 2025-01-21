@@ -1,7 +1,6 @@
 ﻿using DiplomaShark.ProtocolSniffers;
 using PacketDotNet;
 using SharpPcap;
-using SkiaSharp;
 using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -56,7 +55,7 @@ namespace DiplomaShark.Models
         {
             cancellationTokenSource.Cancel();
             captureDevice!.Close();
-        } 
+        }
 
         public void PauseCapture()
         {
@@ -68,7 +67,7 @@ namespace DiplomaShark.Models
         {
             Task.Run(OnPacketArrival, cancel);
         }
-        public ObservableCollection<CapturedPacketInfo> GetCapturedPacketInfos() // Попробовать с коллекцией Packets во ViewModel
+        public ObservableCollection<CapturedPacketInfo> GetCapturedPacketInfos()
         {
             return Packets!;
         }
@@ -89,6 +88,7 @@ namespace DiplomaShark.Models
                     IcmpV4Packet icmp = packet.Extract<IcmpV4Packet>();
                     TcpPacket tcp = packet.Extract<TcpPacket>();
                     UdpPacket udp = packet.Extract<UdpPacket>();
+                    ArpPacket arp = packet.Extract<ArpPacket>();
 
                     if (tcp != null)
                     {
@@ -110,11 +110,17 @@ namespace DiplomaShark.Models
                         BuildCapturedIGMPPacket(igmp);
                         Counter++;
                     }
+                    else if (arp != null)
+                    {
+                        BuildCapturedARPPacket(arp);
+                        Counter++;
+                    }
+
 
 
                     Packets = new ObservableCollection<CapturedPacketInfo>(capturedPacketInfos!);
 
-                    await Task.Delay(3000);
+                    await Task.Delay(1000);
                 }
             }
             catch (Exception ex)
@@ -132,7 +138,7 @@ namespace DiplomaShark.Models
                 DateTime time = raw!.Timeval.Date;
                 int length = tcp.TotalPacketLength;
                 int ttl = tcpIP.TimeToLive;
-                
+
                 string flags = ((int)tcp.Flags).ToString();
                 string sequenceNum = tcp.SequenceNumber.ToString();
                 bool ACK = tcp.Acknowledgment;
@@ -229,6 +235,40 @@ namespace DiplomaShark.Models
                     destinationIPAddress, destinationPort, sourceIPAddress, sourcePort, time.ToString("HH:mm:ss.ffff"),
                     igmp.PrintHex(), igmp.ToString(), iGMPType: type
                     );
+
+                capturedPacketInfos!.Add(pack);
+            }
+        }
+
+        private void BuildCapturedARPPacket(ArpPacket arp)
+        {
+            IPPacket arpIP = packet!.Extract<IPPacket>();
+            if (arp != null)
+            {
+                DateTime time = raw!.Timeval.Date;
+                int length = arp.TotalPacketLength;
+                int hardwareaddresslength = arp.HardwareAddressLength;
+                string hardwareAddresstype = arp.HardwareAddressType.ToString();
+                int protocoladdresslength = arp.ProtocolAddressLength;
+                string protocoladdresstype = arp.ProtocolAddressType.ToString();
+                string operation = arp.Operation.ToString();
+                string senderhardwareaddress = arp.SenderHardwareAddress.ToString();
+                string senderprotocoladdress = arp.SenderProtocolAddress.ToString();
+                string targethardwareaddress = arp.TargetHardwareAddress.ToString();
+                string targetprotocoladdress = arp.TargetProtocolAddress.ToString();
+
+                string sourceIPAddress = arpIP.SourceAddress.ToString();
+                string sourcePort = string.Empty;
+                string destinationIPAddress = arpIP.DestinationAddress.ToString();
+                string destinationPort = string.Empty;
+                int ttl = arpIP.TimeToLive;
+
+                CapturedPacketInfo pack = new CapturedPacketInfo(Counter, length, ttl, ProtocolSniffers.ProtocolType.IGMP,
+                   destinationIPAddress, destinationPort, sourceIPAddress, sourcePort, time.ToString("HH:mm:ss.ffff"),
+                   arp.PrintHex(), arp.ToString(), hardwareAddressLength: hardwareaddresslength, hardwareAddressType: hardwareAddresstype,
+                   protocoladdresslength: protocoladdresslength, protocoladresstype: protocoladdresstype, operation: operation, senderHardwareAddress: senderhardwareaddress,
+                   senderProtocolAddress: senderprotocoladdress, targetHardwarAaddress: targethardwareaddress, targetProtocolAddress: targetprotocoladdress
+                   );
 
                 capturedPacketInfos!.Add(pack);
             }

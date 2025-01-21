@@ -201,6 +201,8 @@
                             <StackPanel Orientation="Horizontal" Spacing="5">
                                 <Label Content="Количество пакетов:" />
                                 <TextBlock VerticalAlignment="Center" Text="{Binding Packets.Count}" />
+								<Label Content="Время профилирования:" />
+								<TextBlock VerticalAlignment="Center" Text="{Binding TimeString}" />
                             </StackPanel>
                             <DataGrid
                                 MaxHeight="700"

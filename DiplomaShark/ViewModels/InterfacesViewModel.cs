@@ -14,6 +14,7 @@ using System.Net.Sockets;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
 
 namespace DiplomaShark.ViewModels
 {
@@ -25,6 +26,9 @@ namespace DiplomaShark.ViewModels
 
         [ObservableProperty]
         private ObservableCollection<CapturedPacketInfo>? _packets = [];
+
+        [ObservableProperty]
+        private string _timeString = "00:00:00";
 
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(StartProfilingCommand))]
@@ -51,6 +55,8 @@ namespace DiplomaShark.ViewModels
         private Interfaces? ListBoxChoosenItem; // Переделать на ОДИН выбранный интерфейс
         private List<NetworkInterface> Adapters = [];
         private bool PauseOrNot;
+        private System.Timers.Timer aTimer = new System.Timers.Timer(1000);
+        private int seconds = 0;
 
 
         #endregion
@@ -100,18 +106,35 @@ namespace DiplomaShark.ViewModels
                                 InterfaceType = adapter.NetworkInterfaceType.ToString(),
                                 IpAddress = UnicastAddresses.Address.ToString(),
                                 IPv4Mask = UnicastAddresses.IPv4Mask.ToString(),
-                                GateWay = props.GatewayAddresses.FirstOrDefault()!.Address.ToString(),
                                 InterfaceMAC = adapter.GetPhysicalAddress().ToString(),
                                 InterfaceSpeed = adapter.Speed.ToString(),
                             };
-
+                            var gate = props.GatewayAddresses?.FirstOrDefault();
+                            if (gate != null)
+                            {
+                                network.GateWay = gate.Address.ToString();
+                            }
+                            else
+                            {
+                                network.GateWay = null;
+                            }
                             networkInterfaces.Add(network);
                         }
                     }
                     InterfacesList = networkInterfaces; // Реализовать SharPcap и PacketDotNet прослушку траффика.
 
                     CanGetInterfaceStatisticsInfo = InterfacesList.Count > 1;
-                    ListBoxChoosenItem = InterfacesList[0];
+                    if (InterfacesList.Count > 0)
+                    {
+                        ListBoxChoosenItem = InterfacesList[0];
+                    }
+                    else
+                    {
+                        throw new Exception("На данном компьютере отсутствуют активные сетевые интерфейсы, подключенные к интернету");
+                    }
+
+                    aTimer.Elapsed += GetTime;
+                    aTimer.Enabled = true;
 
                     RefreshGlobasIPStatsCommand.Execute(null);
                 }
@@ -121,6 +144,13 @@ namespace DiplomaShark.ViewModels
                 var box = MessageBoxManager.GetMessageBoxStandard("Ошибка профилирования", ex.Message, MsBox.Avalonia.Enums.ButtonEnum.Ok);
 
                 box.ShowAsync();
+                CanStartProfiling = true;
+                CanStopProfiling = false;
+                CanPauseProfiling = false;
+                CanContinueProfiling = false;
+                Adapters = [];
+                InterfacesList = [];
+
                 return;
             }
         }
@@ -137,7 +167,7 @@ namespace DiplomaShark.ViewModels
                 {
                     ListBoxChoosenItem = selected[0];
 
-                    StatisticsDataGrid!.ItemsSource = selected;
+                    //StatisticsDataGrid!.ItemsSource = selected;
                     Packets = ListBoxChoosenItem!.SocketSniff!.GetCapturedPacketInfos();
                 }
                 return;
@@ -161,8 +191,8 @@ namespace DiplomaShark.ViewModels
 
                 while (true)
                 {
-                    await Task.Delay(3000);
-      
+                    await Task.Delay(1000);
+
                     ListBoxChoosenItem!.Statistics = currentAdapter.GetIPStatistics();
                     Packets = ListBoxChoosenItem!.SocketSniff!.GetCapturedPacketInfos();
 
@@ -180,17 +210,30 @@ namespace DiplomaShark.ViewModels
                         CanStopProfiling = false;
                         CanPauseProfiling = false;
                         CanContinueProfiling = false;
-                        InterfacesList = [];
-                        Packets = [];
+
                         var msgbox = MessageBoxManager.GetMessageBoxStandard("Профилирование закончено", $"Профилирование остановлено", MsBox.Avalonia.Enums.ButtonEnum.Ok);
 
                         await msgbox.ShowAsync();
+
+                        aTimer.Stop();
+
+                        Summary summaryWindow = new Summary()
+                        {
+                            DataContext = new SummaryViewModel(Packets, TimeString)
+                        };
+                        summaryWindow.Show();
+
+                        InterfacesList = [];
+                        Packets = [];
+                        TimeString = "00:00:00";
+                        seconds = 0;
                     }
                     else
                     {
                         var box = MessageBoxManager.GetMessageBoxStandard("Профилирование приостановлено", $"Профилирование приостановлено", MsBox.Avalonia.Enums.ButtonEnum.Ok, windowStartupLocation: WindowStartupLocation.CenterOwner);
 
                         await box.ShowAsync();
+                        aTimer.Start();
                     }
                 }
                 else
@@ -209,18 +252,29 @@ namespace DiplomaShark.ViewModels
             if (RefreshGlobasIPStatsCancelCommand.CanExecute(null))
             {
                 RefreshGlobasIPStatsCancelCommand.Execute(null);
-            } else
+            }
+            else
             {
                 ListBoxChoosenItem!.SocketSniff!.StopCapture();
                 CanStartProfiling = true;
                 CanStopProfiling = false;
                 CanPauseProfiling = false;
                 CanContinueProfiling = false;
-                InterfacesList = [];
-                Packets = [];
                 var msgbox = MessageBoxManager.GetMessageBoxStandard("Профилирование закончено", $"Профилирование остановлено", MsBox.Avalonia.Enums.ButtonEnum.Ok, windowStartupLocation: WindowStartupLocation.CenterOwner);
 
                 msgbox.ShowAsync();
+                aTimer.Stop();
+
+                Summary summaryWindow = new Summary()
+                {
+                    DataContext = new SummaryViewModel(Packets, TimeString)
+                };
+                summaryWindow.Show();
+
+                InterfacesList = [];
+                Packets = [];
+                TimeString = "00:00:00";
+                seconds = 0;
             }
         }
         [RelayCommand(CanExecute = nameof(CanPauseProfiling))]
@@ -228,6 +282,7 @@ namespace DiplomaShark.ViewModels
         {
             CanPauseProfiling = false;
             CanContinueProfiling = true;
+            aTimer.Stop();
 
             ListBoxChoosenItem?.SocketSniff?.PauseCapture();
             RefreshGlobasIPStatsCancelCommand.Execute(null);
@@ -238,6 +293,7 @@ namespace DiplomaShark.ViewModels
         {
             CanContinueProfiling = false;
             CanPauseProfiling = true;
+            aTimer.Start();
 
             RefreshGlobasIPStatsCommand.Execute(null);
             ListBoxChoosenItem?.SocketSniff?.ContinueCapture();
@@ -257,6 +313,13 @@ namespace DiplomaShark.ViewModels
         private void GetPacketDatagridPointer(RoutedEventArgs? e)
         {
             PacketsDataGrid = (e!.Source as DataGrid);
+        }
+
+        private void GetTime(object sender, ElapsedEventArgs e)
+        {
+            seconds++;
+
+            TimeString = $"{TimeSpan.FromSeconds(seconds).ToString(@"hh\:mm\:ss")}";
         }
     }
 }

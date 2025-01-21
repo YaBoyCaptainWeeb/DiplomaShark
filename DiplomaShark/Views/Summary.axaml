@@ -1,0 +1,67 @@
+<Window
+    x:Class="DiplomaShark.Summary"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:DiplomaShark.ViewModels"
+    Title="Сводка"
+    Margin="5,0,0,0"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    x:DataType="vm:SummaryViewModel"
+    ExtendClientAreaToDecorationsHint="True"
+    TransparencyLevelHint="AcrylicBlur"
+    WindowStartupLocation="CenterScreen"
+    mc:Ignorable="d">
+
+    <Panel>
+        <ExperimentalAcrylicBorder IsHitTestVisible="False">
+            <ExperimentalAcrylicBorder.Material>
+                <ExperimentalAcrylicMaterial
+                    BackgroundSource="Digger"
+                    MaterialOpacity="0.65"
+                    TintColor="Black"
+                    TintOpacity="1" />
+            </ExperimentalAcrylicBorder.Material>
+        </ExperimentalAcrylicBorder>
+        <Border Margin="0,25,0,0" Classes="Board1">
+            <Grid ColumnDefinitions="*" RowDefinitions="30*,70*">
+                <Border
+                    Grid.Row="0"
+                    Grid.Column="0"
+                    Classes="ItemsBorder">
+                    <ListBox ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <Label Content="{Binding TimeString}" FontSize="14" />
+                        <Label Content="{Binding PacketsCount}" FontSize="14" />
+                        <Label Content="{Binding RegisteredProtocols}" FontSize="14" />
+                    </ListBox>
+                </Border>
+                <Border
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    Classes="ItemsBorder">
+                    <DataGrid
+                        MaxHeight="700"
+                        AutoGenerateColumns="False"
+                        CanUserReorderColumns="True"
+                        CanUserResizeColumns="False"
+                        CanUserSortColumns="True"
+                        GridLinesVisibility="All"
+                        IsReadOnly="True"
+                        ItemsSource="{Binding Summary, Mode=OneWay}"
+                        ScrollViewer.HorizontalScrollBarVisibility="Visible"
+                        ScrollViewer.IsDeferredScrollingEnabled="True"
+                        ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Binding="{Binding IP}" Header="IP адрес" />
+                            <DataGridTextColumn Binding="{Binding SendedPackets}" Header="Кол-во отправленных пакетов" />
+                            <DataGridTextColumn Binding="{Binding ReceivedPackets}" Header="Кол-во полученных пакетов" />
+                            <DataGridTextColumn Binding="{Binding Info}" Header="Сведения" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Border>
+            </Grid>
+        </Border>
+    </Panel>
+</Window>
